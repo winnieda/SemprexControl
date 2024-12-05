@@ -1,3 +1,11 @@
+import sys
+import os
+
+# Add the src directory to the Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+src_dir = os.path.join(current_dir, "../../")  # Adjust the relative path
+sys.path.insert(0, src_dir)
+
 from semprexcontrol.samc_client import SAMCClient
 
 if __name__ == "__main__":
