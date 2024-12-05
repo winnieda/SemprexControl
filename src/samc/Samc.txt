@@ -1,0 +1,172 @@
+//SEMPREX ADVANCED MOTOR CONTROLLER INTERFACE LIBRARY
+//COPYRIGHT 1998-2006 SEMPREX CORPORATION - ALL RIGHTS RESERVED
+
+
+library SAMC;
+
+
+type
+  TFilter = array[1..6] of uint16;  //P, I, D, ILm, Vff, MaxErr
+  TMotion = array[1..2] of int32;   //MaxVel, MaxAcl
+
+
+int32 SAMC_SetAddr (uint16 Addr, uint16 Baud); stdcall;
+  //sets address for card controller or RS232 controller
+  //Addr= Com Port # (1..8)
+  //Baud= 38400 (or 19200 for pre-6/2003 controllers)
+  //returns controller chipset info & version number
+  //returns -1 if failed to open com port
+  //Note: Flow Control must be set to 'Hardware' or 'Xon/Xoff' manually
+  //  through Windows Control Panel - System - Hardware - Device Manager
+
+void SAMC_Reset (); stdcall;
+  //resets controller to power-on defaults
+  //sets to zero on all axes:  position, filter & motion parms, travel range
+  //limit switch sensing enabled
+
+void SAMC_DefParms (uint8 Axis, TFilter Filter, TMotion Motion); stdcall;
+  //defines filter and motion parameters for specified axis
+  //Axis= 1 for X, 2 for Y (or Theta), 3 for Z, 4 for Theta (or X or Z)
+  //STAGE WILL NOT RUN PROPERLY WITHOUT DEFINING APPROPRIATE PARAMETERS
+  //***WARNING!*** TO AVOID POSSIBLE SERIOUS DAMAGE TO EQUIPMENT,
+  //               CONSULT SEMPREX FOR APPROPRIATE VALUES!!!
+
+int32 SAMC_Pos (uint8 Axis); stdcall;
+  //returns the current position in encoder counts for specified axis
+
+int32 SAMC_Dest (uint8 Axis); stdcall;
+  //returns the destination position for the specified axis
+
+void SAMC_SetMtrBias (uint8 Axis, int16 Bias); stdcall;
+  //sets positive or negative bias to motor output for the specified axis
+  //usually used for Z-axis or other biased load to motor
+
+void SAMC_LmtsOn; stdcall;
+  //turns on limit switch sensing for all axes (default)
+  //switches must be normally closed (tied to gnd)
+  //once a switch trip has been sensed, it must be reset to allow movement
+
+uint8 SAMC_LmtSensed (uint8 Axis); stdcall;
+  //returns limit switch sensed status for specified axis
+  //0= none, 1= positive switch, 2= negative switch, 3= both switches
+  //both occurs when cable not connected or switch problem
+  //automatically resets sensed limit switch
+
+void SAMC_LmtsOff; stdcall;
+  //turns off limit switch sensing on all axes
+  //and clears all sensed switches
+
+int32 SAMC_GetAllSw; stdcall;
+  //returns current state of all limit switches
+  //bit# 0 = Axis 1 positive switch, bit# 1 = Axis 1 negative switch,
+  //bit# 2 = Axis 2 positive switch, bit# 3 = Axis 2 negative switch,
+  //bit# 4 = Axis 3 positive switch, bit# 5 = Axis 3 negative switch,
+  //bit# 6 = Axis 4 positive switch, bit# 7 = Axis 4 negative switch
+
+single SAMC_GetVel (uint8 Axis); stdcall;
+  //returns the current velocity setting for specified axis
+  //  as a fraction of max velocity, a value from 0 to 1
+
+void SAMC_SetVel (uint8 Axis, single Vel); stdcall;
+  //sets velocity for the specified axis
+  //Vel= fraction of max velocity, a value from 0 to 1
+
+single SAMC_GetAcl (uint8 Axis); stdcall;
+  //returns the current acceleration setting for specified axis
+  //  as a fraction of max acceleration, a value from 0 to 1
+
+uint8 SAMC_SetAcl (uint8 Axis, single Acl); stdcall;
+  //sets acceleration for the specified axis
+  //Acl= fraction of max acceleration, a value from 0 to 1
+  //returns true(1) if successful -- axis cannot be in motion when
+  //  this command is issued
+
+void SAMC_MtrOff (uint8 Axis); stdcall;
+  //turns off motor for specified axis
+
+void SAMC_MtrOn (uint8 Axis); stdcall;
+  //turns on motor for specified axis
+  //WARNING: if axis was moved, turn on motor using SAMC_ClrMotionErr
+
+uint8 SAMC_MotionErr (uint8 Axis); stdcall;
+  //returns true(1) if motion error was encountered on specified axis
+  //a motion error could be caused by an obstruction, motor failure,
+  //  unconnected cable, etc., and will result in the controller
+  //  disabling the motor on that axis
+
+void SAMC_ClrMotionErr (uint8 Axis); stdcall;
+  //attempts to clear a motion error, thereby re-enabling the motor,
+  //  for the specified axis
+  //exercise caution when using this command, physical intervention by
+  //  an operator may be required prior to issuing this command
+
+uint8 SAMC_MoveTo (uint8 Axis, int32 Pos); stdcall;
+  //sets destination position in encoder counts for specified axis
+  //returns false(0) if position is out of range or there was a motion error
+
+int32 SAMC_Range (uint8 Axis); stdcall;
+  //returns travel range out from zero position
+  //  in encoder counts for the specified axis
+
+uint8 SAMC_FindRange (uint8 Axis, uint16 Border); stdcall;
+  //automatically finds safe travel range for specified axis
+  //Border= required number of encoder counts to maintain a safe distance
+  //  away from tripping travel limits during normal operation
+  //prior to using, turn limit sensing on or off as appropriate
+  //this function must be called repeatedly until returning true(1)
+  //  which indicates the process has completed
+  //moves axis slowly to minimum position, returns quickly to start position,
+  //  moves axis slowly to maximum position, then backs away a small distance
+  //sets zero position as the center of travel
+  //sets velocity and acceleration to 0.25
+  //after completing, call SAMC_Range function to verify successful travel
+
+void SAMC_DefRange (uint8 Axis, int32 Range, int32 CurPos); stdcall;
+  //defines travel Range in encoder counts out from zero for specified axis
+  //CurPos assigns current position in encoder counts, defining the zero
+  //  position for the travel range (CurPos not allowed greater than Range)
+  //sets velocity and acceleration to 0.25
+  //REQUIRED for rotational-axis => specify 50000000H as Range, 0 as CurPos
+  //***WARNING!*** IMPROPER SETTING OF TRAVEL RANGE AND THEN RUNNING STAGE AT
+  //  HIGH SPEED INTO HARD-STOP CAN RESULT IN SERIOUS DAMAGE TO EQUIPMENT!!!
+
+int16 SAMC_GetMtrPwr (uint8 Axis); stdcall;
+  //returns the current motor power output for specified axis
+
+uint8 SAMC_PortFail; stdcall;
+  //returns true(1) if communication port is timed out
+  //port can only be (re)activated using SAMC_SetAddr
+
+
+/*APPLICATION NOTES:
+---------------------------------------------------------------------------
+
+*** Proper startup sequence of commands ***
+required:  SAMC_SetAddr (can be used to determine existance of controller)
+optional:  SAMC_Reset
+required:  SAMC_DefParms
+required:  SAMC_FindRange (linear axis) or SAMC_DefRange (rotational axis)
+optional:  SAMC_Range (to check actual travel range)
+
+*** Proper shutdown ***
+required:  SAMC_Reset
+
+
+*** To check if motion complete ***
+Move is complete if difference between Pos and Dest is less than or equal to 1 count (larger tolerance could be used to avoid waiting for settling).
+
+*** Method to implement something like joystick control of the stage ***
+1) Joystick must be connected directly to computer.
+2) Use Windows API functions to read joystick.
+3) Monitor joystick in timer at least 10 times per second, better 20.
+4) Best way to make stage move is by using MoveTo command and SetVel command.  Use Range (one time) to find extent of travel for each axis and store.  Set move to position to extent of travel, either positive or negative, depending on which wayjoystick handle is tilted.  Set velocitiy based on amount of tilt.  If tiltchanges, issue another set velocity command.  It is recommended to look for 
+significant change in tilt of joystick (say 1/10th of range) to avoid wavering
+velocity.  It is also a good idea to quantize the tilt range (say 10 divisions)
+to ensure consistent velocities.  To stop motion, read current position and
+immediately issue a move to the same position.
+5) During non-joystick moves, it is best to turn off joystick timer until move is complete.
+
+*** To implement another zero position ***
+Zero position is always at center of travel for the DLL.  Store a variable with an offset.  Add in offset when positon is shown/reported to the user, and subtract it back out when commands are sent to the DLL.
+
+*/
