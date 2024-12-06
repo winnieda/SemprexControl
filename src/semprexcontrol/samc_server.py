@@ -11,9 +11,15 @@ class SAMCServer(Server32):
 
     def def_parms(self, axis: c_ubyte, filter_params: list, motion_params: list) -> None:
         """Call SAMC_DefParms function."""
-        # Reconstruct ctypes arrays from lists
         filter_array = (c_uint16 * 6)(*filter_params)
         motion_array = (c_int32 * 2)(*motion_params)
-
-        # Call the DLL function
         self.lib.SAMC_DefParms(axis, filter_array, motion_array)
+
+    def find_range(self, axis: c_ubyte, border: c_uint16) -> bool:
+        """Call SAMC_FindRange function."""
+        result = self.lib.SAMC_FindRange(axis, border)
+        return bool(result)
+
+    def reset(self) -> None:
+        """Call SAMC_Reset function."""
+        self.lib.SAMC_Reset()

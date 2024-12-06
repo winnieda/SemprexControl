@@ -11,17 +11,23 @@ from semprexcontrol.samc_client import SAMCClient
 if __name__ == "__main__":
     client = SAMCClient()
 
-    # Initialize the controller
     result = client.set_addr(1, 38400)
     print(f"Controller initialized: {result}")
+    
+    client.reset()
+    print("Controller reset to power-on defaults.")
 
-    # Define parameters
-    filter_params = [500, 200, 1400, 500, 100, 50]  # Example values
-    motion_params = [200000, 40000]  # Example values
+    filter_params = [500, 200, 1400, 500, 100, 50]
+    motion_params = [200000, 40000]
 
-    # Call def_parms
     client.def_parms(1, filter_params, motion_params)
     print("Filter and motion parameters defined successfully.")
+    
+    axis = 1
+    border = 100
+    while not client.find_range(axis, border):
+        print("Finding range...")
+    print("Safe travel range determined.")
 
     # More statements in the order you want them
     # Call functions from client
